@@ -1,125 +1,82 @@
-import React from 'react'
-import { LoginState } from './Model'
-import { Form as FForm, Formik } from 'formik'
-import * as yup from 'yup'
-import { Button, Col, Form as BForm, Modal, Row } from 'react-bootstrap'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import { Button, Checkbox, Form, Input } from 'antd'
+import Modal from 'antd/es/modal/Modal'
 import axios from 'axios'
-import { AppUrl } from '../../../Constants/AppUrl.constants'
-import { TokenService } from '../TokenService'
-import { useNavigate } from 'react-router-dom';
+import { FC, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AppUrl } from '../../../constants/app-url.constants'
+import { TokenService } from '../token.service'
 
-class Login extends React.Component<{}, LoginState> {
-
-   public initialValues = { email: '', password: '', rememberMe: false }
-
-   public tokenService: TokenService;
-
-   public validationRules = yup.object().shape({
-      email: yup.string().required('Email is required').email('Must be email'),
-      password: yup.string().required(),
-      rememberMe: yup.boolean().required('It is required').default(true)
-   })
-
-   constructor(props: any, tokenService: TokenService) {
-      super(props);
-      this.tokenService = tokenService;
-      this.state = {
-         showModal: false,
-         isLoading: false,
-         error: null,
-      }
-   }
-
-   submitForm = (e: any) => {
-      this.setState({isLoading: true});
-      const {email, password, rememberMe} = e;
-      axios.post(AppUrl.AUTHENTICATE, e)
-         .then(response => this.handleResponse(response))
-         .catch(err => console.log(err));
-   }
-
-   handleResponse = (data: { [p: string]: any }) => {
-      this.tokenService.handleToken(data.token);
-      this.setState({isLoading: false});
-      const navigate = useNavigate();
-      navigate('/home');
-   }
-
-   render(): any {
-      return (
-         <div className={'container'}>
-            <Row>
-               <Col md={12}>
-                  <Modal show={true} centered backdrop="static" keyboard={false}>
-                     <Modal.Header closeButton>
-                        <Modal.Title className={'h5'}>Login</Modal.Title>
-                     </Modal.Header>
-                     <Modal.Body>
-                        <Formik
-                           validationSchema={this.validationRules}
-                           onSubmit={this.submitForm}
-                           initialValues={this.initialValues}
-                           validateOnBlur={false}
-                           validateOnChange={false}
-                        >
-                           {({ handleSubmit, handleChange, values, touched, errors }) => (
-                              <FForm className={'horizontal'}>
-                                 <Row className='mb-3'>
-                                    <BForm.Group as={Col} md='12' controlId='loginValidationForm' className={'mb-2'}>
-                                       <BForm.Label>Email</BForm.Label>
-                                       <BForm.Control type='text'
-                                                      size={'sm'}
-                                                      name='email'
-                                                      value={values.email}
-                                                      onChange={handleChange}
-                                                      isValid={touched.email && !errors.email}
-                                                      isInvalid={!!errors.email} />
-                                       <BForm.Control.Feedback type='invalid'>
-                                          {errors.email}
-                                       </BForm.Control.Feedback>
-                                    </BForm.Group>
-                                    <BForm.Group as={Col} md='12' controlId='loginValidationForm'>
-                                       <BForm.Label>Password</BForm.Label>
-                                       <BForm.Control type='password'
-                                                      size={'sm'}
-                                                      name='password'
-                                                      value={values.password}
-                                                      onChange={handleChange}
-                                                      isValid={touched.password && !errors.password}
-                                                      isInvalid={!!errors.password} />
-                                       <BForm.Control.Feedback type='invalid'>
-                                          {errors.password}
-                                       </BForm.Control.Feedback>
-                                    </BForm.Group>
-                                    <BForm.Group as={Col} md='12' controlId='loginValidationForm'>
-                                       <BForm.Check type='checkbox'
-                                                      name='rememberMe'
-                                                      checked={values.rememberMe}
-                                                      onChange={handleChange}
-                                                      isValid={touched.rememberMe && !errors.rememberMe}
-                                                      isInvalid={!!errors.rememberMe} />
-                                       <BForm.Control.Feedback type='invalid'>
-                                          {errors.rememberMe}
-                                       </BForm.Control.Feedback>
-                                    </BForm.Group>
-                                 </Row>
-                                 <Row>
-                                    <Col>
-                                       <Button type='submit' className={'btn btn-sm float-start'}>Login</Button>
-                                       <a className={'btn btn-sm float-end'}>Forgot password ?</a>
-                                       <div className='clearfix'></div>
-                                    </Col>
-                                 </Row>
-                              </FForm>
-                           )}
-                        </Formik>
-                     </Modal.Body>
-                  </Modal>
-               </Col>
-            </Row>
-         </div>
-      )
-   }
+export interface LoginState {
+    showModal: boolean;
+    isLoading: boolean;
+    error: null;
 }
 
-export default Login
+export interface LoginProps {
+    name?: string;
+}
+
+const Login: FC<LoginProps> = (props, context) => {
+
+    let navigate = useNavigate();
+
+    const [state, setState] = useState<LoginState>({
+        error: null,
+        isLoading: false,
+        showModal: true
+    });
+
+    const initialValues = { email: '', password: '', rememberMe: false }
+
+    const submitForm = (e: any) => {
+        setState((prevState) => ({ ...prevState, isLoading: false }))
+        const { email, password, rememberMe } = e
+
+        axios.post(AppUrl.AUTHENTICATE, e)
+            .then(response => handleResponse(response))
+            .catch(err => console.log(err))
+    }
+
+    const handleResponse = (data: { [p: string]: any }) => {
+        TokenService.handleToken(data.token)
+        setState(prev => ({ ...prev, isLoading: false }))
+        return navigate('/home')
+    }
+
+    return (
+        <Modal title='Basic Modal' open={true} onCancel={() => setState((state) => ({ ...state, showModal: false }))}>
+            <Form name='normal_login'
+                className='login-form'
+                initialValues={initialValues}
+                onFinish={submitForm}>
+
+                <Form.Item name='username'
+                    rules={[{ required: true, message: 'Please input your Username!' }]}>
+                    <Input prefix={<UserOutlined className='site-form-item-icon' />} placeholder='Username' />
+                </Form.Item>
+
+                <Form.Item name='password'
+                    rules={[{ required: true, message: 'Please input your Password!' }]}>
+                    <Input prefix={<LockOutlined className='site-form-item-icon' />}
+                        type='password'
+                        placeholder='Password' />
+                </Form.Item>
+
+                <Form.Item>
+                    <Form.Item name='remember' valuePropName='checked' noStyle>
+                        <Checkbox>Remember me</Checkbox>
+                    </Form.Item>
+                    <a className='login-form-forgot' href=''>Forgot password</a>
+                </Form.Item>
+
+                <Form.Item>
+                    <Button type='primary' danger htmlType='submit' className='login-form-button'>Log in</Button>
+                    Or <a href=''>register now!</a>
+                </Form.Item>
+            </Form>
+        </Modal>
+    )
+}
+
+export default Login;

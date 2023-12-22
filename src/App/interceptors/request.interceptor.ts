@@ -1,47 +1,39 @@
-import axios, { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
-import { TokenService } from '../Components/Auth/TokenService'
-
-class HttpInterceptor {
+import axios from 'axios'
+import { TokenService } from '../components/Auth/token.service'
 
 
-   constructor(private tokenService: TokenService) {
-   }
+const interceptRequest = () => {
 
-   public intercept = () => {
-      axios.interceptors.request.use(
-         (request: any) => {
+    axios.interceptors.request.use(
+        (request: any) => {
             // Do something with the request config, such as adding headers
-            console.log('Request Interceptor:', request);
             if (!(request.url.includes('login')
-               || request.url.includes('register')
-               || request.url.includes('forgot-password')
-               || request.url.includes('verify')
-               || request.url.includes('update-credentials'))) {
-               request.headers.authorization = `Bearer ${this.tokenService.getToken()}`;
+                || request.url.includes('register')
+                || request.url.includes('forgot-password')
+                || request.url.includes('verify')
+                || request.url.includes('update-credentials'))) {
+                const token = TokenService.getToken()
+                request.headers.authorization = `Bearer ${token}`
             }
-            return request;
-         },
-         (error) => {
-            // Handle request error
-            return Promise.reject(error);
-         }
-      );
+            return request
+        },
+        (error) => {
+            return Promise.reject(error)
+        }
+    )
 
-      axios.interceptors.response.use(
-         (response) => {
+    axios.interceptors.response.use(
+        (response) => {
             // Do something with the response data
-            console.log('Response Interceptor:', response);
-            return response;
-         },
-         (error) => {
+            console.log('Response Interceptor:', response)
+            return response
+        },
+        (error) => {
             // Handle response error
-            return Promise.reject(error);
-         }
-      );
-   };
+            return Promise.reject(error)
+        }
+    )
 }
 
-const tokenService = new TokenService();
-const interceptor = new HttpInterceptor(tokenService);
-interceptor.intercept();
+interceptRequest();
 
